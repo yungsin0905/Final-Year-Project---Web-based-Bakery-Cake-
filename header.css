@@ -1,0 +1,204 @@
+
+
+:root
+      {
+        --main-color:rgb(240, 194, 200);
+        --font-color:rgb(101, 54, 31);
+        --secondary-color:#fff6e6;
+        --rating-color:#c5afb1;
+        --search-border-color:rgb(187, 162, 153);
+        --bg-color:#fffdf9;
+      }
+
+
+
+/* header */
+
+      header{
+        background-color: white;
+      }
+      .top-bar{
+        display:flex;
+        align-items: center;
+        justify-content: space-between;
+        padding:10px 5%;
+        gap:20px;
+      }
+
+      .search-bar{
+        flex-grow:1;
+        display:flex;
+      }
+
+      .search-container{
+        
+        background-color: var(--secondary-color);
+        border: 2px solid var(--search-border-color);
+        border-radius: 30px;
+      }
+
+      .search-input{
+        border-radius:20px;
+        background: var(--secondary-color);
+        border-color:rgb(187, 162, 153);
+        border-width: 2px;
+        width:70%
+      }
+
+      .search-input::placeholder{
+        color:#c5afb1;
+      }
+
+      .search-btn{
+        border:none;
+        background-color:#f9d9d9;
+        color:var(--search-border-color);
+        margin-left:40px;
+        border-radius:25px;
+        width:150px;
+        font-weight: bold;
+        transition:0.5s;
+      }
+
+      .search-btn:hover{
+        background-color: var(--main-color);
+        color: var(--font-color);
+      }
+
+    .search-input:focus{
+      box-shadow: 0 0 5px 3px rgba(187, 162, 153, 0.3); 
+      outline: none;
+      background-color: var(--secondary-color);
+    }
+
+      .logo{
+        width: 100px;
+        margin:0 30px 0px 0;
+      }
+      
+      .btn-group{
+        display:flex;
+        align-items: center;
+        gap:15px;
+      }
+
+      .btn-group a{
+        color:var(--main-color);
+        font-size:23px;
+        transition:0.5s;
+      }
+
+      .btn-group a:hover{
+        color:#d3979f;
+      }
+
+      .menu-icon{
+         font-size:30px;
+         color:var(--main-color);
+        font-size:30px;
+      }
+
+      .menu-icon:hover{
+        color:#d3979f;
+      }
+
+        /* nav */
+        .nav-main{
+          display:flex;
+          justify-content: center;
+          gap:50px;
+          background-color: var(--main-color);
+          padding:10px 0;
+          margin-bottom:0px;
+        }
+
+        .nav-main a{
+          margin:0 20px;
+          color:var(--font-color);
+          text-decoration:none;
+          font-weight: bold;
+          background-color:var(--main-color) ;
+          border-radius:20px;
+          padding:10px;
+          font-size:20px;
+          transition:0.5s;
+        }
+
+        .nav-main a:hover{
+          background-color:rgba(214, 163, 169, 0.759) ;
+
+          border-radius:20px;
+        }
+
+        /* dropdown */
+        .dropdown-container{
+          position:relative;
+          display:inline-flex;
+          vertical-align: middle;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .mega-menu{
+          display: none;
+          position: absolute;
+          top: 100%; /* display below the link */
+          left: 50%;
+          transform: translateX(-50%); /* center align */
+          background-color: white;
+          min-width: 600px; /* adjust width based on image */
+          padding: 25px;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+          border-radius: 20px;
+          z-index: 1000;
+          justify-content: space-around;
+          gap: 50px;
+          text-align: left;
+        }
+
+        .dropdown-container:hover .mega-menu{
+          display: flex;
+        }
+
+        .menu-column h4{
+        color: var(--font-color);
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        white-space: nowrap;
+        }
+
+        .menu-column ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .menu-column ul li {
+          margin-bottom: 10px;
+      }
+
+      .menu-column ul li a {
+        display: inline-block !important;
+          color: var(--font-color); 
+          text-decoration: none;
+          background-color: transparent ; 
+          padding: 0 ;
+          margin: 0;
+          font-size: 16px ;
+          font-weight: normal ;
+          width: auto;
+          text-align: left;
+
+      }
+
+      .menu-column ul li a:hover {
+          text-decoration: underline ;
+          background-color: transparent ;
+      }
+
+        /* menu collapsible */
+
+        .list-group-item a{
+          color:var(--font-color);
+        }

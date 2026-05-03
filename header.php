@@ -58,7 +58,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <!-- navigation section -->
     <nav class="nav-main">
-      <a href="#">About Us</a>
+      <a href="about us.php">About Us</a>
 
       <!-- dropdown menu -->
       <div class="dropdown-container">

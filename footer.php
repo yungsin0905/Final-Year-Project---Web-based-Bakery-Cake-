@@ -22,7 +22,7 @@
       <div class="footer-col links">
         <h4>Info</h4>
         <ul>
-          <li><a href="#">About Us</a></li>
+          <li><a href="about us.php">About Us</a></li>
           <li><a href="UserDashboard.php">My Profile</a></li>
           <li><a href="membership.php">Membership</a></li>
           <li><a href="Wishlist.php">Wishlist</a></li>

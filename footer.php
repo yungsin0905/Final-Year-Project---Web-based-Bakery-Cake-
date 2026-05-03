@@ -8,26 +8,26 @@
         <h4>Cake</h4>
         <h6>Cake Type</h6>
         <ul>
-          <li><a href="product catalogue.php">Cheese Cake</a></li>
-          <li><a href="product catalogue.php">Fruit Cake</a></li>
-          <li><a href="product catalogue.php">Guilt-Free Cake</a></li>
-          <li><a href="product catalogue.php">Vegan Cake</a></li>
+          <li><a href="product catalogue.php?id=1">Cheese Cake</a></li>
+          <li><a href="product catalogue.php?id=2">Fruit Cake</a></li>
+          <li><a href="product catalogue.php?id=3">Guilt-Free Cake</a></li>
+          <li><a href="product catalogue.php?id=4">Vegan Cake</a></li>
         </ul>
         <h6>Occasion</h6>
         <ul>
-          <li><a href="product catalogue.php">Corporate / Event</a></li>
-          <li><a href="product catalogue.php">Birthday Cake</a></li>
+          <li><a href="product catalogue.php?id=5">Corporate / Event</a></li>
+          <li><a href="product catalogue.php?id=6">Birthday Cake</a></li>
         </ul>
       </div>
       <div class="footer-col links">
         <h4>Info</h4>
         <ul>
           <li><a href="#">About Us</a></li>
-          <li><a href="#">My Profile</a></li>
-          <li><a href="#">Membership</a></li>
+          <li><a href="UserDashboard.php">My Profile</a></li>
+          <li><a href="membership.php">Membership</a></li>
           <li><a href="Wishlist.php">Wishlist</a></li>
-          <li><a href="#">Customise</a></li>
-          <li><a href="#">Voucher</a></li>
+          <li><a href="Customise.php">Customise</a></li>
+          <li><a href="voucher.php">Voucher</a></li>
         </ul>
       </div>
       <div class="footer-col contact">

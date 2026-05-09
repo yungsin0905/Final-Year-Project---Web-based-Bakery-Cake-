@@ -3,6 +3,10 @@ session_start();
 
 require_once 'include/config.php';
 
+//error report for debug
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 $registrationMessage = "";
 
 //module A : process google social login
@@ -10,7 +14,16 @@ if(isset($_POST['google_token'])){
   $id_token = $_POST['google_token'];
 
   $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . $id_token;
-  $response = @file_get_contents($url);
+  
+  //using curl (client url library)send a network request
+  $ch = curl_init();//declare
+  curl_setopt($ch, CURLOPT_URL, $url); //send a request to the google verification server
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); //Return the result of the request as a string.
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //Skip the strict verification of HTTPS certificates.
+  $response = curl_exec($ch); //execute this request and store the result in the variable $response
+  $curl_error = curl_error($ch);//record unexpected situations
+  curl_close($ch);//close this connection to release server resources
+
   $payload = json_decode($response,true);
 
   if(isset($payload['sub'])){
@@ -473,7 +486,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
           <div class="social-login">
             <p>or</p>
             <div class="social-signup">
-                    <a href ="javascript:void(0)" id="google-login-btn"><img src="image/logo/Google.png" alt="Google"/></a>
+                    <div id="google-login-btn"><img src="image/logo/Google.png" alt="Google"/></div>
             </div> 
           </div>
           
@@ -505,14 +518,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
       }
 
       window.onload = function () {
+        //initialize
         google.accounts.id.initialize({
             client_id: "548197528942-k72t8ba1so3tgr8unchbhop5trpan7r2.apps.googleusercontent.com", 
-            callback: handleCredentialResponse
+            callback: handleCredentialResponse,
+             ux_mode: "popup",
+             use_fedcm_for_prompt: true
+
         });
 
-        document.getElementById('google-login-btn').onclick = function() {
-            google.accounts.id.prompt();
-        };
+       const loginBtn = document.getElementById("google-login-btn");
+       if (loginBtn) {
+            google.accounts.id.renderButton(
+                loginBtn,
+                { theme: "outline", size: "large", width: "250" }
+            );
+        }
+
+        google.accounts.id.prompt();
+
   
     //get the error message box//
     const errorBox = document.querySelector('.error-message');

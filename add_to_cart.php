@@ -32,24 +32,6 @@ if (isset($_POST['product_id']) && !empty($_POST['product_id'])) {
     // C. process addon
     $selected_addons = $_POST['selected_addons'] ?? [];
     $addon_qtys = $_POST['addon_qty'] ?? [];
-    
-    if (isset($_POST['buy_now'])) {
-    // buy now: store in session, skip cart insert
-        $_SESSION['buy_now'] = [
-            'product_id'      => $product_id,
-            'variant_id'      => $variant_id,
-            'quantity'        => $qty,
-            'cake_writing'    => $cake_writing,
-            'card_text'       => $card_text,
-            'selected_addons' => $selected_addons,
-            'addon_qtys'      => $addon_qtys,
-        ];
-
-        ob_end_clean();
-        header('Content-Type: application/json');
-        echo json_encode(['status' => 'success', 'redirect' => 'payment.php']);
-        exit();
-    }
 
     // A. create a new data
     $cart_res = mysqli_query($conn, "SELECT CART_ID FROM cart WHERE CUSTOMER_ID = $customer_id LIMIT 1");
@@ -60,10 +42,11 @@ if (isset($_POST['product_id']) && !empty($_POST['product_id'])) {
         $cart_id = mysqli_insert_id($conn);
     }
 
-    // B. insert into cart item
-    $insert_item_sql = "INSERT INTO cart_item (CART_ID, VARIANT_ID, PRODUCT_ID, QUANTITY, CAKE_WRITING,CREATED_AT) 
-                        VALUES ($cart_id, $variant_id, $product_id, $qty, $cake_val, NOW())";
+    $is_buynow = isset($_POST['buy_now']) ? 1 : 0;
 
+    // B. insert into cart item
+    $insert_item_sql = "INSERT INTO cart_item (CART_ID, VARIANT_ID, PRODUCT_ID, QUANTITY, CAKE_WRITING, IS_BUYNOW, CREATED_AT) 
+                        VALUES ($cart_id, $variant_id, $product_id, $qty, $cake_val, $is_buynow, NOW())";
 
     if (mysqli_query($conn, $insert_item_sql)) {
         $cart_item_id = mysqli_insert_id($conn);
@@ -73,6 +56,13 @@ if (isset($_POST['product_id']) && !empty($_POST['product_id'])) {
             $aqty = isset($addon_qtys[$addon_id]) ? intval($addon_qtys[$addon_id]) : 1;
             $addon_sql = "INSERT INTO cart_item_addon (CART_ITEM_ID, ADD_ON_ID, QUANTITY,CARD_TEXT,CREATED_AT) VALUES ($cart_item_id, $addon_id, $aqty, $card_val, NOW())";
             mysqli_query($conn, $addon_sql); 
+        }
+
+        //determine checkout or add to cart
+        if (isset($_POST['buy_now'])) {
+        $_SESSION['checkout_mode'] = 'buynow';
+        } else {
+            $_SESSION['checkout_mode'] = 'cart';
         }
 
         // D. response success

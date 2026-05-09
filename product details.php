@@ -763,7 +763,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
     fetch('add_to_wishlist.php', {
       method: 'POST',
       headers: {
-      'X-Requested-With': 'XMLHttpRequest' 
+      'X-Requested-With': 'XMLHttpRequest' ,
+      'Content-Type': 'application/x-www-form-urlencoded' 
       },
       body:'product_id=' + productId
     })

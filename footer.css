@@ -1,16 +1,19 @@
- :root
+
+ 
+   :root
       {
-        --main-color:rgb(240, 194, 200);
+        --main-color:#e8afaf;
         --font-color:rgb(101, 54, 31);
-        --secondary-color:#fff6e6;
+        --secondary-color:#fffdf9;
         --rating-color:#c5afb1;
         --search-border-color:rgb(187, 162, 153);
+        --bg-color:#ffff;
+        --font2-color:#936752;
       }
- 
  /* footer */
 
       .footer-container{
-        background-color: var(--main-color);
+        background-color:var(--bg-color);
         display: grid;
         grid-template-columns: 1.5fr 1fr 1fr 1.5fr; /* 四列比例 */
         padding: 50px 5%;

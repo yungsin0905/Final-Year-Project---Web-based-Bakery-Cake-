@@ -80,8 +80,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root
@@ -569,7 +569,7 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
                     <input type="checkbox" name ="selected_addons[]" 
                     value="<?php echo $addon['ADD_ON_ID'];?>" 
                     data-price="<?php echo $addon['ADD_ON_PRICE'];?>" 
-                    onclick="calculationTotal(); "> 
+                    onclick="calculationTotal(); <?php if($addon['ADD_ON_ID'] == 3): ?>toggleCardRequired(this);<?php endif;?>"> 
                     
                     <?php if(!empty($addon['ADD_ON_IMAGE'])):?>
                     
@@ -591,7 +591,7 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
                   </div>
 
                   <?php if($addon['ADD_ON_ID'] == 3):?>
-                    <div id="cardMessageArea" style="margin-left: 30px; margin-top: 10px;">
+                    <div id="cardMessageArea" style="margin-left: 30px; margin-top: 10px; display:none;">
                       <textarea id="cardMessageInput" name="card_message" placeholder="Write your greeting message here..." style="width: 100%; height: 60px; border: 1px solid var(--font2-color); border-radius: 4px; padding: 10px;"></textarea>
                     </div>
                   <?php endif;?>
@@ -795,6 +795,16 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
       return;
     }
 
+    //verify when user check the card box but field is empty
+     const cardCheckbox = document.querySelector('input[name="selected_addons[]"][value="3"]');
+      const cardMessage = document.getElementById('cardMessageInput');
+      if (cardCheckbox && cardCheckbox.checked && cardMessage.value.trim() === '') {
+      alert("Please write your greeting message for the card!");
+      cardMessage.focus();
+      return;
+    }  
+  
+
     const form = document.getElementById('productForm');
     const formData = new FormData(form);
 
@@ -836,6 +846,15 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
       alert('Please select a size first!');
       return;
     }
+    
+    //verify when user check the card box but field is empty
+     const cardCheckbox = document.querySelector('input[name="selected_addons[]"][value="3"]');
+      const cardMessage = document.getElementById('cardMessageInput');
+      if (cardCheckbox && cardCheckbox.checked && cardMessage.value.trim() === '') {
+      alert("Please write your greeting message for the card!");
+      cardMessage.focus();
+      return;
+    }  
   
     const form = document.getElementById('productForm');
     const formData = new FormData(form);

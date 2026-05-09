@@ -18,7 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
         
         <div class="btn-group">
             <a class="save-btn" href="Wishlist.php"><i class="bi bi-heart-fill"></i></a>
-            <a class="cart-btn" href="#"><i class="bi bi-cart-fill"></i></a>
+            <a class="cart-btn" href="shopping_cart.php"><i class="bi bi-cart-fill"></i></a>
             <a class="profile-btn" href="UserDashboard.php"><i class="bi bi-person-circle"></i></a>
             <?php if(isset($_SESSION['CUSTOMER_ID'])):?>
                 <a href="javascript:void(0);" onclick="confirmLogout()" class="sign-up">Logout</a>
@@ -41,8 +41,8 @@ if (session_status() === PHP_SESSION_NONE) {
                         <li class="list-group-item border-0"><a href="homepage.php" class="text-decoration-none"><i class="bi bi-house me-2"></i> Homepage</a></li>
                         <li class="list-group-item border-0"><a href="UserDashboard.php" class="text-decoration-none"><i class="bi bi-person-circle me-2"></i>User Profile</a></li>
                         <li class="list-group-item border-0"><a href="Wishlist.php" class="text-decoration-none"><i class="bi bi-heart-fill me-2"></i> Wishlist</a></li>
-                        <li class="list-group-item border-0"><a href="cart.php" class="text-decoration-none"><i class="bi bi-cart-fill me-2"></i> Shopping Cart</a></li>
-                        <li class="list-group-item border-0"><a href="About Us.php" class="text-decoration-none"><i class="bi bi-info-circle me-2"></i> About Us</a></li>
+                        <li class="list-group-item border-0"><a href="shopping_cart.php" class="text-decoration-none"><i class="bi bi-cart-fill me-2"></i> Shopping Cart</a></li>
+                        <li class="list-group-item border-0"><a href="about us.php" class="text-decoration-none"><i class="bi bi-info-circle me-2"></i> About Us</a></li>
                          <!-- //if logged in will change the icon to "logged out"
                         logged out will changed it to "sign up" -->
                     

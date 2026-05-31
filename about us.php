@@ -6,8 +6,9 @@
     <title>About Us Page</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="header.css">
-    <link rel="stylesheet" href="footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     :root {
             --about-bg: #fffdf9; 
@@ -121,7 +122,7 @@
 </style>
 </head>
 <body>
-   <?php include_once 'header.php'; ?>
+   <?php include_once 'include/header.php'; ?>
     <div class="main-container">
     <h2>About Us</h2>
       <p>At Cakeology, our journey began with a passion for creating sweet moments that bring people together. Inspired by the love for baking and celebrations, we created a platform where customers can easily explore and order cakes for their special occasions, anytime and anywhere.</p>
@@ -177,5 +178,5 @@
 </div>
 
 </body>
-<?php include_once 'footer.php'; ?>
+<?php include_once 'include/footer.php'; ?>
 </html>

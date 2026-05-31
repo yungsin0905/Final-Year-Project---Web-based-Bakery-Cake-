@@ -3,10 +3,17 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+include_once 'config.php';
+
+$bakery_query = "SELECT * FROM bakery_info";
+$bakery_result = $conn->query($bakery_query);
+$bakery_info = $bakery_result->fetch_assoc();
+
 ?>
  <!-- search section -->
     <header class="top-bar">
-        <div class="logo"><img src="image/cakeology logo.png" alt="Logo" class="img-fluid"></div>
+        <div class="logo"><img src="<?php echo htmlspecialchars($bakery_info['SHOP_IMAGE']); ?>" alt="Logo" class="img-fluid"></div>
 
         <form action="product catalogue.php" method="GET" class="search-bar">
             <input type="text" name="search" class="form-control search-input" 

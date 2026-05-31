@@ -1,6 +1,28 @@
 <?php
 include 'include/config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+//check the login status
+if(!isset($_SESSION['CUSTOMER_ID'])) {
+  echo json_encode(['status' => 'error', 'message' => 'Please login first']);
+  exit();
+}
+
+$customer_id = $_SESSION['CUSTOMER_ID'];
+
+
+$wishlist_query = "SELECT w.*,p.PRODUCT_NAME, p.COVER_IMAGE,p.PRODUCT_ID, p.AVG_RATING,
+(SELECT MIN(VARIANT_PRICE) FROM product_variant WHERE PRODUCT_ID = p.PRODUCT_ID 
+AND IS_DELETED = 0) as MIN_PRICE
+FROM wishlist w
+JOIN product p ON w.PRODUCT_ID = p.PRODUCT_ID 
+WHERE w.CUSTOMER_ID = $customer_id
+AND p.IS_DELETED = 0";
+
+$wishlist_result = mysqli_query($conn, $wishlist_query);
+$wishlists = mysqli_fetch_all($wishlist_result, MYSQLI_ASSOC);
 
 ?>
 
@@ -13,8 +35,9 @@ session_start();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+        <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
       :root
@@ -57,136 +80,360 @@ session_start();
         text-decoration: underline;
       }
 
-      .container{
-       padding-left:30px;
-       padding-right:30px;
-       min-height:300vh;
+      ..container {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 32px 60px;
       }
-
-      .wishlist-section{
-        padding:15px;
-        margin-bottom:40px;
-        border-bottom: 2px solid rgba(147,103,82,0.3);
-        width:100%;
+ 
+      .wishlist-section {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(147, 103, 82, 0.12);
+        padding: 28px 28px 8px;
+        margin-bottom: 40px;
+        box-shadow: 0 2px 16px rgba(147, 103, 82, 0.06);
       }
-
-      .wishlist-header{
-        display:flex;
-        justify-content:space-between;
-        align-items:flex-end;
-        margin-bottom:20px;
-      }
-
-      .wishlist-header h2{
-        margin:0;
-        font-size:24px;
-        color:#936752;
+ 
+      .wishlist-header {
+        display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom:20px;
-        border-bottom:20px;
-        padding-bottom:10px;
-        font-weight: bold;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1.5px solid rgba(147, 103, 82, 0.15);
       }
-
-      .btn-text{
-        text-decoration:underline;
-        color:var(--font2-color);
-        margin-left: 15px;
-        font-size:14px;
+ 
+      .wishlist-header h2 {
+        margin: 0;
+        font-size: 20px;
+        color: var(--font2-color);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-
-      .btn-text:hover{
-        color:var(--font-color);
+ 
+      .count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--main-color);
+        color: var(--font-color);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 10px;
+        letter-spacing: 0.2px;
       }
-
-      .wishlist-card{
-        display:flex;
-        align-items:center;
-        gap:20px;
-        position:relative;
-        width:100%;
+ 
+      .btn-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(147, 103, 82, 0.28);
+        background: transparent;
+        color: var(--font2-color);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.18s, border-color 0.18s, color 0.18s;
+        font-family: 'Quicksand', sans-serif;
       }
-
-      .header-actions{
-        display:flex;
-        gap:20px;
-        
+ 
+      .btn-text:hover {
+        background: rgba(147, 103, 82, 0.07);
+        border-color: rgba(147, 103, 82, 0.45);
+        color: var(--font-color);
       }
-
-      .wishlist-info{
-        flex-grow:1;
+ 
+      #deleteSelected {
+        color: #a94040;
+        border-color: rgba(169, 64, 64, 0.28);
       }
-
-      .product-thumb{
-        width:120px;
-        height:120px;
+ 
+      #deleteSelected:hover {
+        background: rgba(169, 64, 64, 0.07);
+        border-color: rgba(169, 64, 64, 0.5);
+        color: #8b2c2c;
+      }
+ 
+      .header-actions {
+        display: flex;
+        gap: 8px;
+      }
+ 
+      .wishlist-card {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(147, 103, 82, 0.1);
+        position: relative;
+        transition: background 0.15s;
+      }
+ 
+      .wishlist-card:last-child {
+        border-bottom: none;
+      }
+ 
+      .wishlist-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+ 
+      .product-thumb {
+        width: 90px;
+        height: 90px;
         object-fit: cover;
-        border-radius:4px;
+        border-radius: 10px;
+        border: 1px solid rgba(147, 103, 82, 0.15);
+        flex-shrink: 0;
+        transition: transform 0.2s;
       }
-
-      .product-name{
-        margin:0 0 8px 0;
-        font-size:18px;
-        color:var(--font2-color);
-        font-weight:bold
+ 
+      .product-thumb:hover {
+        transform: scale(1.03);
       }
-
-      .price{
-        color:var(--font2-color);
-        font-size:16px;
-        margin:5px 0;
+ 
+      .product-name {
+        margin: 0;
+        font-size: 15px;
+        color: var(--font2-color);
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        transition: color 0.2s;
       }
-
-      .stars{
-        color:var(--rating-color);
+ 
+      .product-name:hover {
+        color: var(--font-color);
       }
-
-      .card-checkbox{
-        margin-left:auto;
-        width:20px;
-        height:20px;
-        accent-color:var(--font2-color);
+ 
+      .price {
+        color: var(--font-color);
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+      }
+ 
+      .stars {
+        color: var(--rating-color);
+        font-size: 13px;
+        display: flex;
+        gap: 1px;
+      }
+ 
+      .card-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--font2-color);
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-left: 8px;
+      }
+ 
+      .empty-wishlist {
+        text-align: center;
+        padding: 56px 0 40px;
+        color: var(--font2-color);
+      }
+ 
+      .empty-wishlist p {
+        font-size: 15px;
+        opacity: 0.55;
+        margin-bottom: 16px;
+      }
+ 
+      .empty-wishlist .back-link {
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        opacity: 1;
+        background: var(--main-color);
+        color: var(--font-color);
+        padding: 9px 22px;
+        border-radius: 20px;
+        display: inline-flex;
+        text-decoration: none;
+        transition: opacity 0.2s;
+      }
+ 
+      .empty-wishlist .back-link:hover {
+        opacity: 0.85;
+        text-decoration: none;
+      }
+ 
+      /* select-all bar */
+      .select-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        padding: 6px 2px 10px;
+        border-bottom: 1px dashed rgba(147, 103, 82, 0.15);
+      }
+ 
+      .select-bar label {
+        font-size: 13px;
+        color: var(--font2-color);
+        cursor: pointer;
+        user-select: none;
+      }
+ 
+      #selectAll {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--font2-color);
+        cursor: pointer;
       }
     </style>
-</head>
-<body>
-  <?php include 'include/header.php'?>
+  </head>
 
+  <body>
+  <?php include 'include/header.php'?>
+ 
   <div class="container">
     <div class="back-section">
         <a href="homepage.php" class="back-link">
           <i class="bi bi-chevron-left"></i>Back
         </a>
     </div>
-
-
+ 
     <section class="wishlist-section">
       <div class="wishlist-header">
-        <h2>Wishlist</h2>
+        <h2>
+          Wishlist
+          <?php if (count($wishlists) > 0): ?>
+            <span class="count-badge"><?php echo count($wishlists); ?></span>
+          <?php endif; ?>
+        </h2>
         <div class="header-actions">
-        <a href="#" class="btn-text">Add to Cart</a>
-        <a href="#" class="btn-text">Delete</a>
-      </div>
-      </div>
-      
-
-      <div class="wishlist-card">
-        <img class="product-thumb"src="image/product/cheesecake/​Thai Milk Tea & Salted Cheese Basque Cheesecake/thai cheesecake1.jpg">
-        <div class="wishlist-info">
-          <h3 class="product-name"​>Thai Milk Tea & Salted Cheese Basque Cheesecake</h3>
-          <p class="price">RM 89.00</p>
-          <div class="stars">
-            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-          </div>
+          <a class="btn-text" id="clearAll"><i class="bi bi-trash3"></i> Clear</a>
+          <a class="btn-text" id="deleteSelected"><i class="bi bi-x-circle"></i> Delete</a>
         </div>
-        
-        <input type="checkbox" class="card-checkbox">
       </div>
-    </section>
-
+ 
+      <?php if (count($wishlists) > 0):?>
+ 
+        <div class="select-bar">
+          <input type="checkbox" id="selectAll">
+          <label for="selectAll">Select all</label>
+        </div>
+ 
+        <?php foreach($wishlists as $item):?>
+          <?php $rating = $item['AVG_RATING'] ? round($item['AVG_RATING']) : 0;?>
+            <div class="wishlist-card">
+              <a href="product details.php?id=<?php echo $item['PRODUCT_ID'];?>">
+                <img class="product-thumb" src="<?php echo htmlspecialchars ($item['COVER_IMAGE']);?>" alt = "<?php echo htmlspecialchars($item['PRODUCT_NAME']);?>">
+              </a>
+              <div class="wishlist-info">
+                <a href="product details.php?id=<?php echo $item['PRODUCT_ID'];?>" class="product-name">
+                  <h3 class="product-name"​><?php echo htmlspecialchars($item['PRODUCT_NAME']);?></h3>
+                </a>
+                <p class="price">RM <?php echo number_format($item['MIN_PRICE'],2);?></p>
+                <div class="stars">
+                  <?php for ($i = 1; $i<=5; $i++):?>
+                    <?php echo ($i <= $rating) ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>';?>
+                  <?php endfor;?>
+                </div>
+              </div>
+              <input type="checkbox" class="card-checkbox" value="<?php echo $item['PRODUCT_ID'];?>">
+            </div>
+          <?php endforeach;?>
+        <?php else: ?>
+          <div class="empty-wishlist">
+            <p>Your wishlist is empty</p>
+            <a href="homepage.php" class="back-link">Browse Products</a>
+          </div>
+        <?php endif;?>
+      </section>
     </div>
  
   <?php include 'include/footer.php'?>
+
+  <script>
+    // delete selected wishlist items
+    document.getElementById('deleteSelected').addEventListener('click', function() {
+      const checked = document.querySelectorAll('.card-checkbox:checked');
+      if (checked.length === 0) {
+        alert('Please select at least one item to delete.');
+        return;
+      }
+      
+      if (!confirm('Are you sure you want to remove selected items from your wishlist?')) return;
+
+      const productIds = Array.from(checked).map(cb => cb.value);
+
+      fetch('remove_wishlist.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'product_ids=' + JSON.stringify(productIds)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
+
+    //clear all wishlist items
+    document.getElementById('clearAll').addEventListener('click', function() {
+    
+      if (!confirm('Are you sure you want to remove all items from your wishlist?')) {
+        return;
+      }
+
+      fetch('remove_wishlist.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'clear_all=1'
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          alert(data.message);
+          location.reload();
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
+
+    //Select All checkbox
+    document.getElementById('selectAll').addEventListener('change', function() {
+      const allCheckboxes = document.querySelectorAll('.card-checkbox');
+      allCheckboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    //if manually cancel any one of them, it will automatically cancel select all
+    document.querySelectorAll('.card-checkbox').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        const all = document.querySelectorAll('.card-checkbox');
+        const checked = document.querySelectorAll('.card-checkbox:checked');
+        document.getElementById('selectAll').checked = all.length === checked.length;
+      });
+    });
+        
+  </script>
 </body>
 </html>

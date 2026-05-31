@@ -29,14 +29,7 @@ if(isset($_POST['google_token'])){
 
   $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . $id_token;
   
-  //using curl (client url library)send a network request
-  $ch = curl_init();//declare
-  curl_setopt($ch, CURLOPT_URL, $url); //send a request to the google verification server
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); //Return the result of the request as a string.
-  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //Skip the strict verification of HTTPS certificates.
-  $response = curl_exec($ch); //execute this request and store the result in the variable $response
-  $curl_error = curl_error($ch);//record unexpected situations
-  curl_close($ch);//close this connection to release server resources
+  $response = file_get_contents($url);
 
   $payload = json_decode($response,true);
 
@@ -96,7 +89,6 @@ if (isset($_GET['error'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
     $email = mysqli_real_escape_string($conn, $_POST['email']);
     $password = $_POST['password'];
-    $full_name = mysqli_real_escape_string($conn,$_POST['full_name']);
 
     //1. search user trhough email
     $sql = "SELECT * FROM customer WHERE EMAIL = '$email'";
@@ -105,13 +97,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
     if($result && $result->num_rows > 0){
       $user = $result->fetch_assoc();
 
-      //2. verify whether is username matching
-      if ($user['CUSTOMER_NAME'] !== $full_name) {
-            $registrationMessage = "Username does not match our records.";
-        }
-
       //3. verify password
-      else if (password_verify($password, $user['PASSWORD'])){
+         if (password_verify($password, $user['PASSWORD'])){
 
       //4. check user account status
       if($user['STATUS'] === 'Suspended'){
@@ -145,11 +132,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
 
+      :root {
+        --main-color:rgb(240, 194, 200);
+        --font-color:rgb(101, 54, 31);
+        --secondary-color:#fff6e6;
+        --rating-color:#c5afb1;
+        --search-border-color:rgb(187, 162, 153);
+        --bg-color:#fffdf9;
+        --font2-color:rgb(147, 103, 82);
+      }
 
       body {
         font-family: 'Quicksand', sans-serif;
@@ -216,9 +213,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
 
       /* form */
       .signup-container{
-        background-color:#fff9ef;
+        background-color:white;
         border-radius: 30px;
-        border:2px solid var(--search-border-color);
+        border:2px solid var(--main-color);
         padding:40px 25px;
         box-shadow: 0 4px 15px rgba(209, 184, 165, 0.2);
         width:600px;
@@ -397,11 +394,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
               <?php endif; ?>
 
           <form method="post" action="" class="register-form">
-  
-              <div class="form-group">
-                  <label class="form-label">Username : </label>
-                  <input type="text" name="full_name" class="form-control form-input" placeholder="Enter your Full Name" required>
-              </div>
 
               <div class="form-group">
                   <label class="form-label">Email :</label>
@@ -411,11 +403,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
               <div class="form-group">
                   <label class="form-label">Password :</label>
                   <input type="password" name="password" class="form-control form-input" placeholder="Enter your Password" required>
-                  <ul class="hints">
-                    <li>Must include uppercase and lowercase</li>
-                    <li>At least 8 digits</li>
-                    <li>must include symbols and numbers</li>
-                  </ul>
                 </div>
 
               <p>

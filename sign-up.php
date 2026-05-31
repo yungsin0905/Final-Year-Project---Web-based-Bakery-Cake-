@@ -53,6 +53,7 @@ if(isset($_POST['google_token'])){
         VALUES (1, '$full_name', '$email', 'active', 0.00, 0.00, NOW())";
         mysqli_query($conn,$insertCustomer);
         $customer_id = mysqli_insert_id($conn);
+        assignTierVouchers($conn, $customer_id, 1);
       }
       
       $insertSocial = "INSERT INTO social_login (CUSTOMER_ID, PROVIDER,PROVIDER_USER_ID)
@@ -131,6 +132,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
       )";
 
       if (mysqli_query($conn,$sql)) {
+         $customer_id = mysqli_insert_id($conn);
+         assignTierVouchers($conn, $customer_id, 1);
         //if register successfully, redirect to the login page
         echo"<script>alert('Register Success!'); window.location = 'login.php';</script>";
         exit();
@@ -152,8 +155,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
       :root
@@ -240,9 +244,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
 
 
       .signup-container{
-        background-color:#fff9ef;
+        background-color:white;
         border-radius: 30px;
-        border:2px solid var(--search-border-color);
+        border:2px solid var(--main-color);
         padding:40px 25px;
         box-shadow: 0 4px 15px rgba(209, 184, 165, 0.2);
         width:600px;
@@ -343,21 +347,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
         color:#bba299;
       }
 
-      .hints{
-        padding:0 20px;
-        margin: 8px 0 0 5px;
-        color:#bba299;
-        font-size:11px;
-        font-weight:100;
-        display:none;
-       
-    }
-
-     input[name="password"]:focus + .hints,
-        input[name="password"]:focus ~ .hints {
-            display: block;
+      .password-rules {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 12px;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: all 0.4s ease;
       }
 
+      .password-rules li {
+        color: #bbb;
+        padding: 2px 0;
+      }
+
+      .password-rules li::before {
+        content: '✗  ';
+        color: #e57373;
+      }
+
+      .password-rules li.passed::before {
+        content: '✓  ';
+        color: #66bb6a;
+      }
+
+      .password-rules li.passed {
+        color: #66bb6a;
+      }
+
+     input[name="password"]:focus + .password-rules,
+        input[name="password"]:focus ~ .password-rules {
+            display: block;
+      }
+      .form-group:focus-within .password-rules {
+          max-height: 200px;    
+          opacity: 1;            
+          margin-top: 10px;     
+          margin-bottom: 10px;
+      }
+      
       .btn-register{
         width:70%;
         padding: 12px;
@@ -455,7 +485,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
                     </select>
           
                     <input type="tel" id="phone" name="phone" class="form-control phone-input"
-                    maxlength="15" placeholder="123456789" 
+                    maxlength="11" placeholder="123456789" 
                     pattern = "\d{9,11}"
                     title = "please enter 9 to 11 digit numbers"
                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
@@ -466,10 +496,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
               <div class="form-group">
                   <label class="form-label">Password :</label>
                   <input type="password" name="password" class="form-control form-input" placeholder="Enter your Password" required>
-                  <ul class="hints">
-                    <li>Must include uppercase and lowercase</li>
-                    <li>At least 8 digits</li>
-                    <li>Must include symbols and numbers</li>
+                  <ul class="password-rules mt-2" id="pwRules">
+                    <li id="rule-length">  At least 8 characters</li>
+                    <li id="rule-upper">   At least one uppercase (A-Z)</li>
+                    <li id="rule-lower">   At least one lowercase (a-z)</li>
+                    <li id="rule-number">  At least one number (0-9)</li>
+                    <li id="rule-symbol">  At least one symbol (!@#$...)</li>
                   </ul>
                 </div>
 
@@ -548,6 +580,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['google_token'])) {
             errorBox.style.display = 'none';
         }
     });
+
+    document.querySelector('[name="password"]').addEventListener('input', function () {
+      const val = this.value;
+
+      toggleRule('rule-length', val.length >= 8);
+      toggleRule('rule-upper',  /[A-Z]/.test(val));
+      toggleRule('rule-lower',  /[a-z]/.test(val));
+      toggleRule('rule-number', /[0-9]/.test(val));
+      toggleRule('rule-symbol', /[!@#$%^&*(),.?":{}|<>]/.test(val));
+    });
+
+    function toggleRule(id, passed) {
+      const el = document.getElementById(id);
+      if (passed) {
+        el.classList.add('passed');
+      } else {
+        el.classList.remove('passed');
+      }
+    }
   };
 
   </script>

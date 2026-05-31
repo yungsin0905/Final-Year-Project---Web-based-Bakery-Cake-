@@ -1,18 +1,98 @@
 <?php include 'include/config.php';
-session_start();
-;?>
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+//error report for debug
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+//verify user login
+if (!isset($_SESSION['CUSTOMER_ID'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$customer_id = $_SESSION['CUSTOMER_ID'];
+
+$customer_query = "SELECT c.*, t.TIER_NAME, t.MIN_SPENT
+FROM customer c
+LEFT JOIN membership_tier t ON c.TIER_ID = t.TIER_ID
+WHERE c.CUSTOMER_ID = $customer_id
+AND c.STATUS = 'Active'";
+
+$customer_result = mysqli_query($conn, $customer_query);
+$customer = mysqli_fetch_assoc($customer_result);
+
+//retrieve all membership tier
+$tier_query = "SELECT * FROM membership_tier ORDER BY MIN_SPENT ASC";
+$tier_result = mysqli_query($conn, $tier_query);
+$tiers = mysqli_fetch_all($tier_result, MYSQLI_ASSOC);
+
+$current_tier_name = $customer['TIER_NAME'];
+$total_spent = (float)($customer['TOTAL_SPENT']??0);
+
+//automatically update tier if total spent exceeds current tier
+$correct_tier = $tiers[0];
+foreach ($tiers as $tier) {
+    if ($total_spent >= $tier['MIN_SPENT']) {
+        $correct_tier = $tier;
+    }
+}
+
+if ($correct_tier['TIER_NAME'] !== $customer['TIER_NAME']) {
+    //update customer's tier in database
+    mysqli_query($conn, "UPDATE customer SET TIER_ID = {$correct_tier['TIER_ID']} WHERE CUSTOMER_ID = $customer_id");
+    $customer['TIER_ID'] = $correct_tier['TIER_ID'];
+    $customer['TIER_NAME'] = $correct_tier['TIER_NAME'];
+    $customer['MIN_SPENT'] = $correct_tier['MIN_SPENT'];
+}
+//update current tier info for display
+$current_tier_name = $correct_tier['TIER_NAME'];
+$current_tier_min_spent = $correct_tier['MIN_SPENT'];
+
+
+//find another tier and progress
+$progress_text = "All benefits unlocked";
+foreach ($tiers as $index => $tier) {
+    if ($tier ['TIER_NAME'] === $current_tier_name) {
+        if (isset($tiers[$index + 1])) {
+           $next = $tiers[$index +1];
+           $spend_needed = max(0, $next['MIN_SPENT'] - $total_spent);
+           $progress_text = "Spend more RM" . number_format($spend_needed,2) . " / RM" . number_format($next['MIN_SPENT'], 2) . " to upgrade to " . $next['TIER_NAME'];
+        }
+        break;
+    }
+}
+
+$higher_tiers = array_filter($tiers, function($tier) use ($current_tier_min_spent){
+  return $tier['MIN_SPENT'] > $current_tier_min_spent;
+});
+
+function getTierClass($name){
+  $map = [
+    'Bronze' => 'bronze-tier',
+    'Silver' => 'silver-tier',
+    'Gold' => 'gold-tier'
+  ];
+  return $map[$name] ?? 'bronze-tier';
+}
+
+?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucher</title>
+    <title>Membership</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
         --main-color:rgb(240, 194, 200);
@@ -201,10 +281,10 @@ session_start();
       <h1 class="page-title">Membership</h1>
     </div>
     
-    <div class="member-tier-section bronze-tier">
+    <div class="member-tier-section <?php echo getTierClass($current_tier_name);?>">
       <p class="member-tier">Your Member tier <i class="bi bi-chevron-right"></i></p>
-        <h2 class="tier-name">Bronze</h2>
-         <p class="progress-text">Spend more RM0 / RM200 upgrade to Silver</p>
+        <h2 class="tier-name"><?php echo htmlspecialchars($current_tier_name); ?></h2>
+         <p class="progress-text"><?php echo htmlspecialchars($progress_text); ?></p>
     </div> <div class="member-benefits-section">
       <div class="title-section">
         <h2 class="join-title">Join Cakeology Membership</h2>
@@ -221,22 +301,35 @@ session_start();
         </ol>
       </div>
 
+      <?php 
+      $higher_tiers = array_filter($tiers, function($tier) use ($customer){
+        return $tier['MIN_SPENT']>$customer['MIN_SPENT'];
+      });
+      ?>
+
+      <?php if (!empty($higher_tiers)): ?>
       <div class="upgrade-section">
         <h3 class="upgrade-title">Upgrade Your Membership</h3>
         
-        <div class="member-tier-section silver-tier">
-          <p class="member-tier">Your Member tier <i class="bi bi-chevron-right"></i></p>
-            <h2 class="tier-name">Silver</h2>
-            <p class="progress-text">Spend more RM0 / RM500 upgrade to Gold</p>
-            
-        </div>
+        <?php foreach($higher_tiers as $tier): ?>
+          <?php
+          $upgrade_text = "All benefits unlocked";
+          foreach ($tiers as $i => $t) {
+            if ($t['TIER_ID'] === $tier['TIER_ID'] && isset($tiers[$i + 1])){
+              $upgrade_text = "Spend RM" . number_format($tiers[$i + 1]['MIN_SPENT'], 2) . " to unlock next tier";
+              break;
+            }
+          }
+          ?>
 
-        <div class="member-tier-section gold-tier">
+        <div class="member-tier-section <?php echo getTierClass($tier['TIER_NAME']);?>">
           <p class="member-tier">Your Member tier <i class="bi bi-chevron-right"></i></p>
-            <h2 class="tier-name">Gold</h2>
-            <p class="progress-text">All benefits unlocked</p>
+            <h2 class="tier-name"><?php echo htmlspecialchars($tier['TIER_NAME']); ?></h2>
+            <p class="progress-text">Unlock at RM<?php echo number_format($tier['MIN_SPENT'], 2); ?> total spending</p>
         </div>
+        <?php endforeach;?>
       </div> 
+      <?php endif;?>
     </div> 
   </div> 
 

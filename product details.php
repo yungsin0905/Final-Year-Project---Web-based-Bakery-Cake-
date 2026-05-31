@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
   //retrieve product information
-  $query = "SELECT p.*, c.CATEGORY_NAME ,
+  $query = "SELECT p.*, c.CATEGORY_NAME,
   (SELECT AVG(RATING) FROM review WHERE PRODUCT_ID = p.PRODUCT_ID AND REVIEW_STATUS = 'Unhide') as CALCULATED_RATING,
   (SELECT COUNT(*) FROM review WHERE PRODUCT_ID = p.PRODUCT_ID AND REVIEW_STATUS = 'Unhide') as TOTAL_REVIEWS
   FROM product p
@@ -29,7 +29,11 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
   $total_reviews = $product['TOTAL_REVIEWS'];
 
   //retrieve add on
-  $add_query = "SELECT * FROM add_on WHERE IS_DELETED = 0";
+  $add_query = "SELECT pa.*, a.*
+   FROM product_addon pa
+   JOIN add_on a ON pa.ADD_ON_ID = a.ADD_ON_ID
+  WHERE pa.PRODUCT_ID = $product_id AND a.IS_DELETED = 0";
+
   $add_result = mysqli_query($conn, $add_query);
   $all_addons = mysqli_fetch_all($add_result, MYSQLI_ASSOC);
 
@@ -46,7 +50,7 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
                   
   //setup price initialization to variant price
   $initial_price = count($variants) > 0 ? (float)$variants[0]['VARIANT_PRICE'] : 0.0;
-
+  $initial_stock = count($variants) > 0 ? intval($variants[0]['VARIANT_STOCK']) : 999;
   //sort review
   $sort = isset($_GET['sort']) ? $_GET['sort'] : 'high_ratings';
   $order_by = "r.CREATED_AT DESC"; 
@@ -70,6 +74,12 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
   $reviews = mysqli_fetch_all($reviews_result, MYSQLI_ASSOC);
   $review_count = mysqli_num_rows($reviews_result);
 
+  //check if product is in wishlist
+  $in_wishlist = false;
+  if (isset($_SESSION['CUSTOMER_ID'])) {
+    $wl_check = mysqli_query($conn, "SELECT WISHLIST_ID FROM wishlist WHERE CUSTOMER_ID = {$_SESSION['CUSTOMER_ID']} AND PRODUCT_ID = $product_id");
+    $in_wishlist = mysqli_num_rows($wl_check) > 0;
+  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -357,6 +367,19 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         resize: none;
       }
 
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: var(--font2-color);
+            margin-top: 6px;
+            padding-right: 5px;
+        }
+
+        .char-counter.over {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
       #cardMessageInput:required:invalid {
       border: 1px solid #ff4d4d ;
       }
@@ -460,6 +483,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         cursor:pointer;
       }
 
+      
+
       /* zoom animation */
       @keyframes zoomIn {
       from { transform: scale(0.8); opacity: 0; }
@@ -519,8 +544,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
             <div class="header-section">
               <div class="title-wrapper d-flex align-items-center justify-content-between">
                 <h1 class="product-title"><?php echo htmlspecialchars($product['PRODUCT_NAME']);?></h1>
-                <a class="wishlist-btn" data-product-id="<?php echo $product_id;?>">
-                <i class="bi bi-heart"></i></a>
+                <a class="wishlist-btn <?php echo $in_wishlist ? 'active' : ''; ?>" data-product-id="<?php echo $product_id;?>">
+                <i class="bi <?php echo $in_wishlist ? 'bi-heart-fill' : 'bi-heart'; ?>"></i></a>
               </div>
               <span class="category-tag"><a href="product catalogue.php?id=<?php echo $product['CATEGORY_ID'];?>"><?php echo htmlspecialchars($product['CATEGORY_NAME']);?></a></span>
               <div class="price">RM <span id="displayPrice"><?php echo number_format($initial_price, 2); ?></span></div>
@@ -534,7 +559,7 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
                 <label>Quantity:</label>
                 <div class="quantity-input">
                   <button type="button" onclick="changeQty(this, -1)">-</button>
-                  <input type="text" name="quantity" value="1" max="<?php echo $product['STOCK_QTY'];?>" readonly>
+                  <input type="text" name="quantity" value="1" data-max="<?= $initial_stock;?>" readonly>
                   <button type="button" onclick="changeQty(this, 1)">+</button>
                 </div>
               </div>
@@ -555,7 +580,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
               <?php if($product['ALLOW_WRITING'] == 1):?>
                 <div class="selector-group" style="display: block;">
                   <label>Cake Writing</label>
-                  <textarea name = "cake_writing" placeholder="Write your message here..."></textarea>
+                  <textarea name = "cake_writing" id="CAKE_WRITING" maxlength="50" placeholder="Write your message here..."></textarea>
+                  <div class="char-counter"><span id="cake-count">0</span> / 50</div>
                 </div>
               <?php endif;?>
 
@@ -592,7 +618,8 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
                   <?php if($addon['ADD_ON_ID'] == 3):?>
                     <div id="cardMessageArea" style="margin-left: 30px; margin-top: 10px; display:none;">
-                      <textarea id="cardMessageInput" name="card_message" placeholder="Write your greeting message here..." style="width: 100%; height: 60px; border: 1px solid var(--font2-color); border-radius: 4px; padding: 10px;"></textarea>
+                      <textarea id="cardMessageInput" name="card_message" maxlength="50" placeholder="Write your greeting message here..." style="width: 100%; height: 60px; border: 1px solid var(--font2-color); border-radius: 4px; padding: 10px;"></textarea>
+                      <div class="char-counter"><span id="card-count">0</span> / 50</div>
                     </div>
                   <?php endif;?>
                 <?php endforeach;?>
@@ -945,7 +972,7 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
     //delta = Quantity change value
     const input = btn.parentElement.querySelector('input');
     //find the maximum stock and convert to integer, default maximum 999 stocks
-    const maxStock = parseInt(input.getAttribute('max')) || 999; 
+    const maxStock = parseInt(input.getAttribute('data-max')) || 999; 
     let value = parseInt(input.value) || 1;
     
     value += delta;
@@ -974,6 +1001,25 @@ $product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
       messageInput.value = '';
     }
   }
+
+   //word counter
+      function initCounter(textareaId, countId, max) {
+        const textarea = document.getElementById(textareaId);
+        const counter  = document.getElementById(countId);
+         if (!textarea || !counter) return;
+        const wrapper  = counter.parentElement;
+
+        counter.textContent = textarea.value.length;
+
+        textarea.addEventListener('input', function () {
+            const len = this.value.length;
+            counter.textContent = len;
+            wrapper.classList.toggle('over', len >= max);
+        });
+      }
+
+    initCounter('cardMessageInput', 'card-count', 50);
+    initCounter('CAKE_WRITING', 'cake-count', 50);
 
 </script>
 </body>

@@ -1,15 +1,65 @@
-<?php include 'include/config.php';?>
+<?php include 'include/config.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+//error report for debug
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+//verify user login
+if (!isset($_SESSION['CUSTOMER_ID'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$old = $_SESSION['form_old'] ?? [];
+unset($_SESSION['form_old']);
+
+$coverage_query = "SELECT CITY, POSTCODE, STATE FROM delivery_coverage
+WHERE STATUS ='Active' ORDER BY CITY ASC";
+$coverage = [];
+$result = $conn->query($coverage_query);
+while ($row = $result->fetch_assoc()) {
+    $coverage[] = $row;
+}
+
+$cake_style_query = "SELECT STYLE_NAME FROM cake_style
+WHERE STATUS ='Active' ORDER BY STYLE_NAME ASC";
+
+$cake_styles = [];
+$result = $conn->query($cake_style_query);
+while ($row = $result->fetch_assoc()) {
+    $cake_styles[] = $row;
+}
+
+//retrieve bakery_info data
+$settings_result = $conn->query("SELECT OPEN_DAYS, OPEN_TIME, CLOSE_TIME FROM bakery_info WHERE BAKERY_ID = 1 LIMIT 1");
+$settings = $settings_result->fetch_assoc();
+$open_time_js  = date('H', strtotime($settings['OPEN_TIME']));  // "10"
+$close_time_js = date('H', strtotime($settings['CLOSE_TIME'])); // "20"
+$open_days_js  = $settings['OPEN_DAYS']; // "Mon,Tue,Wed,Thu,Fri"
+
+$slots_result = $conn->query("SELECT SLOT_ID, START_TIME, END_TIME FROM delivery_slots WHERE STATUS = 'Active' ORDER BY START_TIME ASC");
+$slots = [];
+while ($row = $slots_result->fetch_assoc()) {
+    $slots[] = $row;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
+    <title>Customise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/header.css">
-    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/header.css?v=3.0">
+    <link rel="stylesheet" href="css/footer.css?v=5.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
        :root
@@ -62,7 +112,7 @@
        
       }
 
-      .logo{
+      .logo-custom{
         width:150px;
         height:150px;
         margin-bottom:20px;
@@ -122,6 +172,13 @@
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr; 
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .form-address-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; 
             gap: 25px;
             margin-bottom: 25px;
         }
@@ -229,6 +286,20 @@
             box-shadow: 0 12px 25px rgba(147, 103, 82, 0.2);
         }
 
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: var(--font2-color);
+            margin-top: 6px;
+            padding-right: 5px;
+        }
+
+        .char-counter.over {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+
     </style>
 </head>
 <body>
@@ -243,7 +314,7 @@
 
         <div class="custom-form-wrapper">
             <header class="page-header">
-                <img class="logo" src="image/cakeology logo.png" alt="Logo">
+                <img class="logo-custom" src="image/cakeology logo.png" alt="Logo">
                 <h1>Join Cakeology Today</h1>
                 <p class="subtitle">Craft Your Own Cake Experience. Every detail, tailored to you</p>
             </header>
@@ -254,75 +325,164 @@
                     <p>Fill in the details below and we will provide a quote for your dream cake!</p>
                 </div>
 
+                <!-- error display -->
+                 <?php if (!empty($_SESSION['form_errors'])):?>
+                    <div class="alert alert-danger" style="border-radius:15px;">
+                        <ul class="mb-0">
+                            <?php foreach ($_SESSION['form_errors'] as $error): ?>
+                                <li><?php echo htmlspecialchars($error); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php unset($_SESSION['form_errors']); ?>
+                <?php endif; ?>
+
+                <!-- success display -->
+                <?php if (!empty($_SESSION['form_success'])):?>
+                    <div class="alert alert-success" style="border-radius:15px;">
+                        <?php echo htmlspecialchars($_SESSION['form_success']); ?>
+                    </div>
+                    <?php unset($_SESSION['form_success']); ?>
+                <?php endif; ?>
+
+
+                <!-- form area -->
                 <form action="submit_custom_request.php" method="POST" enctype="multipart/form-data">
                     
                     <div class="form-grid">
                         <div class="field-group">
                             <label>Recipient Name <span>*</span></label>
-                            <input type="text" name="RECIPIENT_NAME" placeholder="Full Name" required>
+                            <input type="text" name="RECIPIENT_NAME" placeholder="Full Name" 
+                            value="<?= htmlspecialchars($old['RECIPIENT_NAME'] ?? '') ?>" required>
                         </div>
                         <div class="field-group">
                             <label>Recipient Email <span>*</span></label>
-                            <input type="email" name="RECIPIENT_EMAIL" placeholder="example@mail.com" required>
+                            <input type="email" name="RECIPIENT_EMAIL" placeholder="example@mail.com" 
+                            value="<?= htmlspecialchars($old['RECIPIENT_EMAIL'] ?? '') ?>" required>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Recipient Phone <span>*</span></label>
+                        <div style="display: flex; gap: 10px;">
+                            <select name="COUNTRY_CODE" class="custom-select" style="flex: 0 0 100px; padding-right: 10px;">
+                                <option value="+60">+60</option>
+                            </select>
+                            <input type="text" name="PHONE_NUMBER" maxlength="11" placeholder="123456789" 
+                                pattern = "\d{9,11}" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                              value="<?= htmlspecialchars($old['PHONE_NUMBER'] ?? '') ?>" required>
                         </div>
                     </div>
 
                     <div class="form-grid">
-                        <div class="field-group">
-                          <label>Recipient Phone <span>*</span></label>
-                          <div style="display: flex; gap: 10px;">
-                              <select name="COUNTRY_CODE" class="custom-select" style="flex: 0 0 100px; padding-right: 10px;">
-                                  <option value="+60">+60</option>
-                              </select>
-                              <input type="text" name="PHONE_NUMBER" placeholder="12-3456789" required>
-                          </div>
-                        </div>
                         <div class="field-group">
                             <label>Delivery Date <span>*</span></label>
-                            <input type="datetime-local" name="DELIVERY_DATE" required>
+                            <input type="date" name="DELIVERY_DATE" id="DELIVERY_DATE"
+                            value="<?= htmlspecialchars($old['DELIVERY_DATE'] ?? '') ?>" required>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Delivery Time Slot <span>*</span></label>
+                            <select name="SLOT_ID" class="custom-select" required>
+                                <option value="" disabled  <?= empty($old['SLOT_ID']) ? 'selected' : '' ?>>Choose a time slot...</option>
+                                <?php foreach ($slots as $slot): ?>
+                                <option value="<?= $slot['SLOT_ID'] ?>">
+                                    <?= date('g:i A', strtotime($slot['START_TIME'])) ?> - 
+                                    <?= date('g:i A', strtotime($slot['END_TIME'])) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="form-grid">
+                    <div class="form-address-grid">
                         <div class="field-group">
                             <label>Cater Count (Pax) <span>*</span></label>
-                            <input type="text" name="CATER_COUNT" placeholder="e.g. 20" required>
+                            <input type="text" name="CATER_COUNT" placeholder="e.g. 20" 
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            value="<?= htmlspecialchars($old['CATER_COUNT'] ?? '') ?>" required>
                         </div>
                         <div class="field-group">
                             <label>Cake Size / Weight</label>
-                            <input type="text" name="SIZE" placeholder="e.g. 6 inch / 1kg">
+                            <input type="text" name="SIZE" placeholder="e.g. 6 inch / 1kg" 
+                            value="<?= htmlspecialchars($old['SIZE'] ?? '') ?>">
+                        </div>
+                        <div class="field-group">
+                            <label>Quantity <span>*</span></label>
+                            <input type="text" name="QUANTITY" placeholder="e.g. 2" 
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                            value="<?= htmlspecialchars($old['QUANTITY'] ?? '') ?>" required>
                         </div>
                     </div>
 
                     <div class="field-group">
                         <label>Ideal Cake Flavour</label>
-                        <input type="text" name="IDEAL_FLAVOUR" placeholder="e.g. Earl Grey / Belgian Chocolate">
+                        <input type="text" name="IDEAL_FLAVOUR" placeholder="e.g. Earl Grey / Belgian Chocolate" 
+                        value="<?= htmlspecialchars($old['IDEAL_FLAVOUR'] ?? '') ?>">
                     </div>
 
                     <div class="field-group">
-                        <label>Delivery Address <span>*</span></label>
-                        <textarea name="RECIPIENT_ADDR" rows="2" placeholder="Full delivery address" required></textarea>
+                        <label>Address Line <span>*</span></label>
+                        <textarea name="RECIPIENT_ADDR" rows="2" maxlength="50" placeholder="Full delivery address" 
+                        id="RECIPIENT_ADDR" required><?= htmlspecialchars($old['RECIPIENT_ADDR'] ?? '') ?></textarea>
+                         <div class="char-counter"><span id="addr-count">0</span> / 50</div>
+                    </div>
+
+                    <div class="form-address-grid">
+                        <div class="field-group">
+                            <label>City <span>*</span></label>
+                            <select name="CITY" id="CITY" class="custom-select" required>
+                                <option value="" disabled <?= empty($old['CITY']) ? 'selected' : '' ?>>Choose a city...</option>
+                                <?php foreach ($coverage as $row): ?>
+                                    <option value="<?= htmlspecialchars($row['CITY']) ?>"
+                                        data-postcode="<?= htmlspecialchars($row['POSTCODE']) ?>"
+                                        data-state="<?= htmlspecialchars($row['STATE']) ?>"
+                                        <?= isset($old['CITY']) && $old['CITY'] === $row['CITY'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($row['CITY']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="field-group">
+                            <label>Postcode <span>*</span></label>
+                            <input type="text" name="POSTCODE" id="POSTCODE" placeholder="Auto-filled" 
+                            value="<?= htmlspecialchars($old['POSTCODE'] ?? '') ?>" readonly>
+                        </div>
+
+                        <div class="field-group">
+                            <label>State <span>*</span></label>
+                            <input type="text" name="STATE" id="STATE" placeholder="Auto-filled" 
+                            value="<?= htmlspecialchars($old['STATE'] ?? '') ?>" readonly>
+                        </div>
                     </div>
 
                     <div class="field-group">
                         <label>Custom Design Description <span>*</span></label>
-                        <textarea name="CUSTOM_DES" rows="4" placeholder="Describe themes, colors, or wording..." required></textarea>
+                        <textarea name="CUSTOM_DES" rows="4" maxlength="200" placeholder="Describe themes, colors, or wording..." 
+                        id ="CUSTOM_DES" required><?= htmlspecialchars($old['CUSTOM_DES'] ?? '') ?></textarea>
+                         <div class="char-counter"><span id="des-count">0</span> / 200</div>
                     </div>
 
                     <div class="form-grid">
                         <div class="field-group">
                             <label>Cake Style (Select one) <span>*</span></label>
                             <select name="CAKE_STYLE" class="custom-select" required>
-                                <option value="" disabled selected>Choose a style...</option>
-                                <option value="1 Tier">1 Tier Cake</option>
-                                <option value="2 Tier">2 Tier Cake</option>
-                                <option value="3 Tier">3 Tier Cake</option>
-                                <option value="Corporate">Corporate</option>
+                                <option value="" disabled <?= empty($old['CAKE_STYLE']) ? 'selected' : '' ?>>Choose a style...</option>
+                                <?php foreach ($cake_styles as $row): ?>
+                                    <?php $is_selected = isset($old['CAKE_STYLE']) && $old['CAKE_STYLE'] === $row['STYLE_NAME']; ?>
+                                        <option value="<?= htmlspecialchars($row['STYLE_NAME']) ?>"
+                                        <?= $is_selected ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($row['STYLE_NAME']) ?>
+                                        </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="field-group">
                             <label>Your Budget (Optional)</label>
-                            <input type="text" step="0.01" name="BUDGET" placeholder="RM 0.00">
+                            <input type="text" step="0.01" name="BUDGET" placeholder="RM 0.00"
+                             oninput="this.value = this.value.replace(/[^0-9.]/g, '')"
+                            value="<?= htmlspecialchars($old['BUDGET'] ?? '') ?>">
                         </div>
                     </div>
 
@@ -335,6 +495,7 @@
                                 <span id="file-name">Click to upload reference image</span>
                             </label>
                         </div>
+                        <small class="text-muted">Supported formats: JPG, PNG. Max size: 5MB.</small>
                     </div>
 
                     <div class="form-footer">
@@ -347,10 +508,68 @@
     <?php include 'include/footer.php'?>
 
 <script>
+
     document.getElementById('REF_IMAGE').onchange = function () {
             const fileName = this.files[0] ? this.files[0].name : "Click to upload reference image";
-            document.getElementById('file-name').innerHTML = fileName;
+            document.getElementById('file-name').textContent = fileName;
         };
+    
+    //delivery date must be future date and time
+
+    const openDays = <?= json_encode(explode(',', $open_days_js)) ?>;
+    const openHour = <?= json_encode($open_time_js) ?>;
+    const closeHour = <?= json_encode($close_time_js) ?>;
+    const dateTimeInput = document.getElementById('DELIVERY_DATE');
+    
+    // Set minimum date to current date and time
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); //convert to local time
+    const datetimeInput = document.getElementById('DELIVERY_DATE');
+    if (datetimeInput) {
+    datetimeInput.min = now.toISOString().slice(0, 16);
+
+    //after user select a date, validate time
+    datetimeInput.addEventListener('change',function() {
+        const selected = new Date(this.value);
+        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const selectedDay = days[selected.getDay()];
+
+        if (!openDays.includes(selectedDay)) {
+            alert("We are closed on weekends. Please select a weekday (Mon-Fri).");
+            this.value = '';
+            return;
+        }
+    });
+    }
+
+
+    //auto-fill postcode and state based on city selection
+
+    document.getElementById('CITY').addEventListener('change', function(){
+        const selected = this.options[this.selectedIndex];
+         document.getElementById('POSTCODE').value = selected.dataset.postcode ?? '';
+        document.getElementById('STATE').value    = selected.dataset.state ?? '';
+        
+    });
+
+    //word counter
+    function initCounter(textareaId, countId, max) {
+        const textarea = document.getElementById(textareaId);
+        const counter  = document.getElementById(countId);
+        const wrapper  = counter.parentElement;
+
+        counter.textContent = textarea.value.length;
+
+        textarea.addEventListener('input', function () {
+            const len = this.value.length;
+            counter.textContent = len;
+            wrapper.classList.toggle('over', len >= max);
+        });
+    }
+
+    initCounter('RECIPIENT_ADDR', 'addr-count', 50);
+    initCounter('CUSTOM_DES',     'des-count',  200);
+
         
 </script>
 </body>

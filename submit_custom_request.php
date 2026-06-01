@@ -275,7 +275,7 @@ if (!$custom_result) {
     exit();
 }
 
-// Create notification to admin
+// Create notification to admin - Store into notification table 
 $new_custom_id = $conn->insert_id;
 $conn->query("
     INSERT INTO notification (TYPE, REF_ID, MESSAGE, IS_READ)

@@ -21,9 +21,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
   $custom_result = mysqli_query($conn, $custom_query);
 
   if (mysqli_num_rows($custom_result)) {
-    $update_query = "UPDATE custom SET STATUS = 'Rejected', REJECTED_BY = 'Customer' 
-    WHERE CUSTOM_ID = $custom_id";
+    // get delivery date
+    $row = mysqli_fetch_assoc($custom_result);
+    
+    $date_query = mysqli_query($conn, "
+        SELECT DELIVERY_DATE 
+        FROM custom
+        WHERE CUSTOM_ID = $custom_id
+    ");
+
+    $date_row = mysqli_fetch_assoc($date_query);
+
+    $delivery_date_only = date('Y-m-d', strtotime($date_row['DELIVERY_DATE']));
+
+    // update custom status
+    $update_query = "
+        UPDATE custom 
+        SET STATUS = 'Rejected', REJECTED_BY = 'Customer' 
+        WHERE CUSTOM_ID = $custom_id
+    ";
+
     mysqli_query($conn, $update_query);
+
+    // reduce already booked
+    mysqli_query($conn, "
+        UPDATE production_capacity
+        SET ALREADY_BOOKED = ALREADY_BOOKED - 1
+        WHERE PRODUCTION_DATE = '$delivery_date_only'
+        AND ALREADY_BOOKED > 0
+    ");
   }
 
   header("Location: CustomiseRequest.php");

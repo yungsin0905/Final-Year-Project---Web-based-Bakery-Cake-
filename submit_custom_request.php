@@ -267,6 +267,18 @@ $custom_sql = "INSERT INTO custom (
 
 $custom_result = $conn->query($custom_sql);
 
+// Create notification to admin
+$new_custom_id = $conn->insert_id;
+$conn->query("
+    INSERT INTO notification (TYPE, REF_ID, MESSAGE, IS_READ)
+    VALUES (
+        'CUSTOM_REQUEST',
+        $new_custom_id,
+        'One new custom cake request',
+        0
+    )
+");
+
 if (!$custom_result) {
     error_log("custom_order insert error: " . $conn->error);
     $_SESSION['form_errors'] = ["Failed to submit your request. Please try again."];

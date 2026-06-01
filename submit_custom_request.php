@@ -267,6 +267,14 @@ $custom_sql = "INSERT INTO custom (
 
 $custom_result = $conn->query($custom_sql);
 
+if (!$custom_result) {
+    error_log("custom_order insert error: " . $conn->error);
+    $_SESSION['form_errors'] = ["Failed to submit your request. Please try again."];
+    $_SESSION['form_old']    = $_POST;
+    header("Location: Customise.php");
+    exit();
+}
+
 // Create notification to admin
 $new_custom_id = $conn->insert_id;
 $conn->query("
@@ -278,14 +286,6 @@ $conn->query("
         0
     )
 ");
-
-if (!$custom_result) {
-    error_log("custom_order insert error: " . $conn->error);
-    $_SESSION['form_errors'] = ["Failed to submit your request. Please try again."];
-    $_SESSION['form_old']    = $_POST;
-    header("Location: Customise.php");
-    exit();
-}
 
 //update product capacity
 $new_custom_id = $conn->insert_id;
